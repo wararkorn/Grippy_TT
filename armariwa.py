@@ -10,6 +10,10 @@ import keyboard
 import multiprocessing
 import threading
 
+def distance():
+    global x,y,w,h
+    return f'{np.sqrt((((x+h)-x)**2 )+ (((y+h)-y)**2))} pixel'
+
 def move_x(speed,errorx):
     if errorx > 20:
             speed += 11
@@ -44,6 +48,7 @@ def controller():
         x,y,w,h,cx_bbox,cy_bbox,width,height = bounding_box(img)
 
         if w > 20 and h > 20 :
+            print(distance())
             c_time = time.time()    
 
             e_x = cx_bbox - (width//2)
