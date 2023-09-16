@@ -16,7 +16,9 @@ def bounding_box(img):
     hsv_c = cv.cvtColor(clean_chick, cv.COLOR_RGB2HSV_FULL)
 
     # c_threshold = (100 <= hsv_c[:,:,0])  & (hsv_c[:,:,1] <= 200) & (hsv_c[:,:,1] >= 150).astype(np.uint8) 
-    c_threshold = (100 <= hsv_c[:,:,0])  & (hsv_c[:,:,1] >= 150) &(hsv_c[:,:,2] >= 105).astype(np.uint8) 
+    # c_threshold = (100 <= hsv_c[:,:,0])  & (hsv_c[:,:,1] >= 150) &(hsv_c[:,:,2] >= 105).astype(np.uint8) 
+    c_threshold = (100 <= hsv_c[:,:,0])  & (hsv_c[:,:,1] >= 150).astype(np.uint8) 
+    # c_threshold = (105 <= hsv_c[:,:,0])  & (hsv_c[:,:,1] >= 145) &(hsv_c[:,:,2] >= 110).astype(np.uint8)
     c_threshold = c_threshold*255
 
     contours , _ = cv.findContours(c_threshold , cv.RETR_TREE ,cv.CHAIN_APPROX_SIMPLE)
@@ -43,7 +45,7 @@ def bounding_box(img):
 
 #---------------------------------------------------------------------
 
-# o_chick = cv.imread('.\pic\littlechic11.png')
+# o_chick = cv.imread('.\pic\littlechic12.png')
 # brightness_chick = cv.convertScaleAbs( o_chick ,alpha= 0.5,beta=20)
 
 # blur_chick = cv.medianBlur(brightness_chick,11)
@@ -52,7 +54,8 @@ def bounding_box(img):
 
 # hsv_c = cv.cvtColor(clean_chick, cv.COLOR_RGB2HSV_FULL)
 
-# c_threshold = (100 <= hsv_c[:,:,0])  & (hsv_c[:,:,1] >= 150) &(hsv_c[:,:,2] >= 145).astype(np.uint8) 
+# # c_threshold = (100 <= hsv_c[:,:,0])  & (hsv_c[:,:,1] >= 150) & (hsv_c[:,:,2] >= 145).astype(np.uint8) 
+# c_threshold = (100 <= hsv_c[:,:,0])  & (hsv_c[:,:,1] >= 150).astype(np.uint8) 
 # c_threshold = c_threshold*255
 
 
@@ -76,6 +79,10 @@ def bounding_box(img):
 
 # if w > 20 and h > 20 :
 #     bbox = cv.rectangle(o_chick , (x,y) , (x+w,y+h) , (0 , 255 , 0) , 1)
+#     cv.imshow("bbox",o_chick)
+#     cv.waitKey(0)
+#     cv.destroyAllWindows()
+# else:
 #     cv.imshow("bbox",c_threshold)
 #     cv.waitKey(0)
 #     cv.destroyAllWindows()

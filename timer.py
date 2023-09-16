@@ -9,6 +9,7 @@ from perfect_move import move_x
 import keyboard
 import multiprocessing
 import threading
+import csv
 
 def move_x(speed,errorx):
     if errorx > 20:
@@ -29,13 +30,14 @@ def move_x(speed,errorx):
 
 
 def controller():
-    global p_time,c_time,img,e_x,e_y,feedback_x,feedback_y,iter,speed_x,angle_1,angle_2
+    global p_time,c_time,img,e_x,e_y,feedback_x,feedback_y,iter,speed_x,angle_1,angle_2,start
     iter = 1
     angle_1 = 0
     angle_2 = 0
     ep_servo.moveto(index=2, angle=0).wait_for_completed()
     time.sleep(0.001)
     ep_servo.moveto(index=1, angle=0).wait_for_completed()
+    start = time.time()
     time.sleep(0.001)
     p_time = time.time()
     while True:
@@ -50,20 +52,20 @@ def controller():
             e_y = (height//2) - cy_bbox 
 
             kp_x = 0.04
-            kd_x = 0.02
+            kd_x = 0
             
             # if w > 20 and h > 20:
 
             if iter > 1:
                 speed_x = (kp_x*e_x) + kd_x*((feedback_x-e_x)/(p_time-c_time))
                 if move_x(speed_x,e_x) == "Perfect":
-                    if Y_Controll() == "Done":
-                        if closer_chainsmoker() == "sweet dream":
-                            print("Can't Get Closer")
-                        else:
-                            closer_chainsmoker()
-                    else:
-                        Y_Controll()
+                    Y_Controll()
+                        # if closer_chainsmoker() == "sweet dream":
+                        #     print("Can't Get Closer")
+                        # else:
+                        #     closer_chainsmoker()
+                    # else:
+                    #     Y_Controll()
                 else:
                     move_x(speed_x,e_x)
             
@@ -80,7 +82,7 @@ def controller():
             time.sleep(0.001)
 
 def Y_Controll():
-    global  x,y,w,h,cx_bbox,cy_bbox,e_x,speed_x,e_y,angle_1,angle_2
+    global  x,y,w,h,cx_bbox,cy_bbox,e_x,speed_x,e_y,angle_1,angle_2,start
     # e_y = (height//2) - cy_bbox
     # print(e_y)
     # if move_x(speed_x,e_x) == "Perfect":
@@ -120,7 +122,7 @@ def Y_Controll():
         print('eeeeeeeeeeeeeeeeeee' , angle_1)
         if angle_1 > -40:
             ep_servo.moveto(index=1, angle=angle_1).wait_for_completed()
-            time.sleep(0.001)    
+            time.sleep(0.001)
     
         else:
             angle_2 += 1
@@ -136,7 +138,14 @@ def Y_Controll():
     
         
     else:
-            return str("Done")
+        times = time.time() - start
+        with open('timeprocess.csv', 'a', encoding='UTF8') as f:
+            writer = csv.writer(f)
+            writer.writerow([times])
+        print(f'Elasped : {times}')
+        time.sleep(3)
+        start = time.time()
+        # return str("Done")
     
 def show_bbox(w,h):
     if w > 20 and h > 20 :
