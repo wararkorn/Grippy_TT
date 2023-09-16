@@ -144,7 +144,7 @@ def Y_Controll():
             return str("Done")
     
 def show_bbox(w,h):
-    if w > 20 and h > 20 :
+    if w >= 10 and h >= 10 :
         cv.rectangle(img , (x,y) , (x+w,y+h) , (0 , 0 , 0) , 1)
         cv.putText(img, f'{cx_bbox},{cy_bbox}', (cx_bbox,cy_bbox), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
         cv.circle(img, (cx_bbox, cy_bbox), 3, (0, 10, 0), -1)
