@@ -1,222 +1,298 @@
-
 from robomaster import robot , camera
 import cv2 as cv
-import numpy as np 
+import numpy as np
 import matplotlib.pyplot as plt
-import time
+import time 
 from chick_bbox import bounding_box
-from perfect_move import move_x
 import keyboard
-import multiprocessing
 import threading
 import csv
 
-def move_x(speed,errorx):
-    if errorx > 20:
-            speed += 11
-            ep_chassis.drive_wheels(w1=-speed, w2=speed, w3=speed, w4=-speed)
+#Function คำนวณระยะห่างระหว่าง พิกัดจุดกึ่งกลางของภาพ กับ พิกัดจุดกึ่งกลางของ Bounding Box
+def compute_distance():
+    global width,height,cx_bbox,cy_bbox
+    return f'{round(np.sqrt((((cx_bbox - (width//2)))**2 )+ (((cy_bbox - (height//2)))**2 )))} pixel'
+
+
+#Function การควบคุมหุ่นในแกน X หรือ การควบคุมพิกัดจุดกึ่งกลางของภาพ กับ พิกัดจุดกึ่งกลางของ Bounding Box ให้ error ในแนวแกน X อยู่ในช่วงที่ต้องการ
+#กำหนดให้ error (x) อยู่ในช่วง +- 20 pixel 
+def xaxis_control(speed_pid,xaxis_error):
+    print(xaxis_error)
+    if 20 > xaxis_error > 10:
+        speed_pid = 20
+        ep_chassis.drive_wheels(w1=-speed_pid, w2=speed_pid, w3=speed_pid, w4=-speed_pid)
+        time.sleep(0.001)
+        ep_chassis.drive_wheels(w1=0, w2=0, w3=0, w4=0)
+
+    elif -20 < xaxis_error < -10:
+        speed_pid = 20
+        # speed_pid = -speed_pid
+        ep_chassis.drive_wheels(w1=speed_pid, w2=-speed_pid, w3=-speed_pid, w4=speed_pid)
+        time.sleep(0.001)
+        ep_chassis.drive_wheels(w1=0, w2=0, w3=0, w4=0)
+
+    elif xaxis_error > 20:
+        speed_pid += 12.5
+        ep_chassis.drive_wheels(w1=-speed_pid, w2=speed_pid, w3=speed_pid, w4=-speed_pid)
+        time.sleep(0.001)
+        ep_chassis.drive_wheels(w1=0, w2=0, w3=0, w4=0)
+    
+    elif xaxis_error < -20:
+        speed_pid -= 12.5
+        speed_pid = -speed_pid
+        ep_chassis.drive_wheels(w1=speed_pid, w2=-speed_pid, w3=-speed_pid, w4=speed_pid)
+        time.sleep(0.001)
+        ep_chassis.drive_wheels(w1=0, w2=0, w3=0, w4=0)
+
+
+    elif -10 <= xaxis_error <= 10:
+        return str("Done")
+
+    # print(speed)
+
+#Function การควบคุมหุ่นในแกน Y หรือ การควบคุมให้พิกัดจุดกึ่งกลางของภาพ กับ พิกัดจุดกึ่งกลางของ Bounding Box ให้ error ในแนวแกน Y อยู่ในช่วงที่ต้องการ
+#กำหนดให้ error (y) อยู่ในช่วง +- 5 pixel 
+def yaxis_control():
+    global angle_1,angle_2,yaxis_error
+
+    
+    if yaxis_error > 10:
+        print('yaxis_error > 5')
+        angle_1 += 1
+        angle_1_min = min(40,angle_1)
+
+        if angle_2 > 20:
+            print('yaxis_error > 5 | angle_2 > 20')
+            angle_2 -= 1
+            ep_servo.moveto(index=2, angle=angle_2).wait_for_completed()
             time.sleep(0.001)
-            
-    elif errorx < -20: 
-            speed -= 11
-            speed = -speed
-            ep_chassis.drive_wheels(w1=speed, w2=-speed, w3=-speed, w4=speed)
+        
+        elif angle_1 < 40:
+            print('yaxis_error > 5 | angle_1 < 40')
+            ep_servo.moveto(index=1, angle=angle_1_min).wait_for_completed()
             time.sleep(0.001)
+
+        elif angle_1 >= 40:
+            print('yaxis_error > 5 | angle_1 >= 40')
+            angle_2 -= 1
+            angle_2_max = max(-40,angle_2)
+            ep_servo.moveto(index=2, angle=angle_2_max).wait_for_completed()
+            time.sleep(0.001)
+    
+
+    elif yaxis_error < -10:
+        print(yaxis_error)
+        print('yaxis_error < -5')
+        angle_1 -= 1
+        angle_1_max = max(-40,angle_1)
+
+        if angle_1 == 40:
+            print('yaxis_error < -5 | angle_1 == 40')
+            angle_2 += 1
+            ep_servo.moveto(index=2, angle=angle_2).wait_for_completed()
+            time.sleep(0.001)
+
+        elif angle_1 > -40:
+            print('yaxis_error < -5 | angle_1 > -40')
+            ep_servo.moveto(index=1, angle=angle_1_max).wait_for_completed()
+            time.sleep(0.001)   
+
+        elif angle_1 <= -40:
+            print('yaxis_error < -5 | angle_1 <= -40')
+            angle_2 += 1
+            angle_2_min = min(40,angle_2)
+            ep_servo.moveto(index=2, angle=angle_2_min).wait_for_completed()
+            time.sleep(0.001)
+
 
     else :
-        ep_chassis.drive_wheels(w1=0, w2=0, w3=0, w4=0)
-        return str("Perfect")
+        # print('return Done')
+        return str("Done")
+    
+
+    if abs(angle_1) > 40 and abs(angle_2) > 40:
+        print("she's such an angel")
+        return str("she's such an angel")
 
 
+#Function เข้าหาเป้าหมาย โดยที่ยังควบคุมพิกัดจุดกึ่งกลางของภาพ กับ พิกัดจุดกึ่งกลางของ Bounding Box ให้ error อยู่ในช่วงที่ต้องการ
+def Get_Closer():
+    global yaxis_error,end
+    speed = 30
+    stop = 0
 
-def controller():
-    global p_time,c_time,img,e_x,e_y,feedback_x,feedback_y,iter,speed_x,angle_1,angle_2,start
+    if yaxis_control() == str("Done"):
+        ep_chassis.drive_wheels(w1=speed, w2=speed, w3=speed, w4=speed)
+        time.sleep(0.01)
+        ep_chassis.drive_wheels(w1=stop, w2=stop, w3=stop, w4=stop)
+        time.sleep(0.001)
+    
+
+    elif yaxis_control() == str("she's such an angel") :
+        ep_chassis.drive_wheels(w1=-speed, w2=-speed, w3=-speed, w4=-speed)
+        time.sleep(0.01)
+        ep_chassis.drive_wheels(w1=stop, w2=stop, w3=stop, w4=stop)
+        time.sleep(0.001)
+        print('Already Move on ถอยออกมาก่อนเนาะ')
+        end = True
+    
+    else:
+        yaxis_control()
+
+
+#Function การทำงานทั้งหมดในส่วนของหุ่น 
+def Robot_Processing():
+    global x,y,w,h,cx_bbox,cy_bbox,width,height,p_errorx,iter,angle_1,angle_2,yaxis_error,xaxis_error,end 
     iter = 1
     angle_1 = 0
     angle_2 = 0
+    end = False
+    start = time.time()
+
     ep_servo.moveto(index=2, angle=0).wait_for_completed()
     time.sleep(0.001)
     ep_servo.moveto(index=1, angle=0).wait_for_completed()
-    start = time.time()
     time.sleep(0.001)
+
     p_time = time.time()
+    time.sleep(1)
+
+    start = time.time()
+
     while True:
         time.sleep(0.001)
-        img = ep_camera.read_cv2_image(strategy="newest")
-        x,y,w,h,cx_bbox,cy_bbox,width,height = bounding_box(img)
 
-        if w > 20 and h > 20 :
-            c_time = time.time()    
+        # img = ep_camera.read_cv2_image(strategy="newest")
+        # x,y,w,h,cx_bbox,cy_bbox,width,height = bounding_box(img)
 
-            e_x = cx_bbox - (width//2)
-            e_y = (height//2) - cy_bbox 
+        if w >= 10 and h >= 10 :
+            print(f'distance : {compute_distance()}')
 
-            kp_x = 0.04
-            kd_x = 0
-            
-            # if w > 20 and h > 20:
+            c_time = time.time()
+
+            xaxis_error = xaxis_error
+            yaxis_error = yaxis_error
+
+            print(f'cy_bbox : {cy_bbox} center : {height//2} y error : {yaxis_error}')
+
+            kp = 0.3
+            # kp = 0.03
+            # kd = 0.0001
+
 
             if iter > 1:
-                speed_x = (kp_x*e_x) + kd_x*((feedback_x-e_x)/(p_time-c_time))
-                if move_x(speed_x,e_x) == "Perfect":
-                    Y_Controll()
-                        # if closer_chainsmoker() == "sweet dream":
-                        #     print("Can't Get Closer")
-                        # else:
-                        #     closer_chainsmoker()
+
+                speed_pd = (kp*xaxis_error)# + kd*((p_errorx-xaxis_error)/(p_time-c_time))
+                print(speed_pd)
+                # speed_slow = 20
+
+                if xaxis_control(speed_pd , xaxis_error) == str("Done"):
+                    print('xaxis_control(speed_x , e_x) == str("Done")')
+                    if yaxis_control() == str("Done"):
+                        end = time.time()
+                        with open('timeprocess.csv', 'a', encoding='UTF8') as f:
+                            writer = csv.writer(f)
+                            writer.writerow([end - start])
+                        time.sleep(5)
+                        start = time.time()
+                    else:
+                        yaxis_control()
+                    # if end and yaxis_control() == str("she's such an angel"):
+                    #     print('พอเถอะพอ')
+                    #     while yaxis_control() != str('Done'):
+                    #         yaxis_control()
+                    #     else:
+                    #         print("Gorgeous")
+                    #         break
+
                     # else:
-                    #     Y_Controll()
-                else:
-                    move_x(speed_x,e_x)
-            
+                    #     print('ยังขยับได้อยู่')
+                    #     Get_Closer()
                 
+                else:
+                    print('xaxis_control(speed_x , e_x) != str("Done")')
+                    xaxis_control(speed_pd , xaxis_error)
+
+
             iter += 1
 
             p_time = time.time()
-            
-            feedback_x = e_x
-            # feedback_y = e_y
+
+            p_errorx = xaxis_error
             time.sleep(0.001)
+
         else:
             ep_chassis.drive_wheels(w1=0, w2=0, w3=0, w4=-0)
             time.sleep(0.001)
 
-def Y_Controll():
-    global  x,y,w,h,cx_bbox,cy_bbox,e_x,speed_x,e_y,angle_1,angle_2,start
-    # e_y = (height//2) - cy_bbox
-    # print(e_y)
-    # if move_x(speed_x,e_x) == "Perfect":
-    print(e_y)
 
-    if (angle_1 <= -35 and  angle_2 <= -35) & (e_y < 2 and e_y > -2) :
-            return str("Eiei")
-    
-    if e_y > 2:
-        angle_1 += 3
-        angle_1 = min(40,angle_1)
-        if  angle_2 > 20 :
-            angle_2 -= 1
-            ep_servo.moveto(index=2, angle=angle_2).wait_for_completed()
-            time.sleep(0.001)
-    
+def show_bounding_box():
+    global yaxis_error,xaxis_error,x,y,w,h,cx_bbox,cy_bbox,width,height
+    while True :
 
-        if angle_1 < 40:
-            ep_servo.moveto(index=1, angle=angle_1).wait_for_completed()
-            time.sleep(0.001)
-            
-        else:
-            angle_2 -= 1
-            angle_2 = max(-40,angle_2)
-            print(f'eeeeeeeeeeeeeeeeeeee: {angle_2}')
-            ep_servo.moveto(index=2, angle=angle_2).wait_for_completed()
-            time.sleep(0.001)
+        if keyboard.is_pressed('q'):
+            break
 
-        # if  angle_2 > 20 :
-        #     angle_2 -= 1
-        #     ep_servo.moveto(index=2, angle=angle_2).wait_for_completed()
-        #     time.sleep(0.001)
-    
-    elif e_y < -2:
-        angle_1 -= 3
-        angle_1 = max(-40,angle_1)
-        print('eeeeeeeeeeeeeeeeeee' , angle_1)
-        if angle_1 > -40:
-            ep_servo.moveto(index=1, angle=angle_1).wait_for_completed()
-            time.sleep(0.001)
-    
-        else:
-            angle_2 += 1
-            angle_2 = min(40,angle_2)
-            ep_servo.moveto(index=2, angle=angle_2).wait_for_completed()
-            time.sleep(0.1)
-            print('2222222222222' , angle_2)
+        img = ep_camera.read_cv2_image(strategy = "newest")
+        # img = ep_camera.read_video_frame()
+        x,y,w,h,cx_bbox,cy_bbox,width,height = bounding_box(img)
+
+
+        if w >= 10 and h >= 10 :
+            yaxis_error = height//2 - cy_bbox
+            xaxis_error = cx_bbox - (width//2)
+
+            cv.rectangle(img , (x,y) , (x+w,y+h) , (0 , 0 , 0) , 1)
+            cv.putText(img, f'{cx_bbox},{cy_bbox}', (cx_bbox,cy_bbox), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+            cv.circle(img, (cx_bbox, cy_bbox), 3, (0, 10, 0), -1)
+            cv.circle(img, (round(width/2),round(height/2)), 3, (0, 10, 0), -1)
+            cv.imshow("Robot", img)
+            cv.waitKey(1)
         
-        if angle_1 == 40:
-            angle_2 += 1
-            ep_servo.moveto(index=2, angle=angle_2).wait_for_completed()
-            time.sleep(0.001)
-    
-        
-    else:
-        times = time.time() - start
-        with open('timeprocess.csv', 'a', encoding='UTF8') as f:
-            writer = csv.writer(f)
-            writer.writerow([times])
-        print(f'Elasped : {times}')
-        time.sleep(3)
-        start = time.time()
-        # return str("Done")
-    
-def show_bbox(w,h):
-    if w > 20 and h > 20 :
-        cv.rectangle(img , (x,y) , (x+w,y+h) , (0 , 0 , 0) , 1)
-        cv.putText(img, f'{cx_bbox},{cy_bbox}', (cx_bbox,cy_bbox), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-        cv.circle(img, (cx_bbox, cy_bbox), 3, (0, 10, 0), -1)
         cv.circle(img, (round(width/2),round(height/2)), 3, (0, 10, 0), -1)
         cv.imshow("Robot", img)
         cv.waitKey(1)
-    else:
-        cv.circle(img, (round(width/2),round(height/2)), 3, (0, 10, 0), -1)
-        cv.imshow("Robot", img)
-        cv.waitKey(1)
-         
-def closer_chainsmoker():
-    if Y_Controll() != str("Eiei"):
-        speed = 13
-        stop = 0
-        ep_chassis.drive_wheels(w1=speed, w2=speed, w3=speed, w4=speed)
-        time.sleep(0.1)
-        # ep_chassis.drive_wheels(w1=stop, w2=stop, w3=stop,w4=stop)
-        # time.sleep(0.1)
-        Y_Controll()
-    
-    else:
-        return str('sweet dream')
-     
 
-if __name__ == '__main__':
+    cv.destroyAllWindows()
+    ep_camera.stop_video_stream()
+    ep_robot.close()
+
+
+if __name__ == "__main__":
     ep_robot = robot.Robot()
     ep_robot.initialize(conn_type="ap")
     ep_servo = ep_robot.servo
     ep_camera = ep_robot.camera
     ep_vision = ep_robot.vision
     ep_chassis = ep_robot.chassis
-    # ep_servo.moveto(index=1, angle=0).wait_for_completed()
-    # ep_servo.moveto(index=2, angle=0).wait_for_completed()
-    ep_camera.start_video_stream(display=False)
-    # iter = 1
-    # speed_angle = 1
-    wf1  = threading.Thread(target=controller)
-    wf1.start()
+    ep_camera.start_video_stream(display = False)
 
-    while True:
-        if keyboard.is_pressed('q'):
-            break
-        
-        img = ep_camera.read_cv2_image(strategy="newest")
-        x,y,w,h,cx_bbox,cy_bbox,width,height = bounding_box(img)
+    robot_process = threading.Thread(target= Robot_Processing)
+    robot_process.start()
+    boundingbox_process = threading.Thread(target= show_bounding_box)
+    boundingbox_process.start()
 
-        # # show_bbox(w,h)
-        # if w > 20 and h > 20 :
-        #     if XPD_controller() is not None:
-        #         XPD_controller()  
-        #     else:
-        #         Y_Controll()
-        
-        show_bbox(w,h)
-        
-        #     cv.rectangle(img , (x,y) , (x+w,y+h) , (0 , 0 , 0) , 1)
-        #     cv.putText(img, f'{cx_bbox},{cy_bbox}', (cx_bbox,cy_bbox), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-        #     cv.circle(img, (cx_bbox, cy_bbox), 3, (0, 10, 0), -1)
+    # while True :
 
-            
-            
-        # cv.circle(img, (round(width/2),round(height/2)), 3, (0, 10, 0), -1)
-        # cv.imshow("Robot", img)
-        # cv.waitKey(1)
+    #     if keyboard.is_pressed('q'):
+    #         break
 
+    #     img = ep_camera.read_cv2_image(strategy = "newest")
+    #     x,y,w,h,cx_bbox,cy_bbox,width,height = bounding_box(img)
 
-    cv.destroyAllWindows()
-    ep_camera.stop_video_stream()
-    ep_robot.close()
+        # show_bounding_box()
+    #     if w >= 10 and h >= 10 :
+    #         cv.rectangle(img , (x,y) , (x+w,y+h) , (0 , 0 , 0) , 1)
+    #         cv.putText(img, f'{cx_bbox},{cy_bbox}', (cx_bbox,cy_bbox), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+    #         cv.circle(img, (cx_bbox, cy_bbox), 3, (0, 10, 0), -1)
+    #         cv.circle(img, (round(width/2),round(height/2)), 3, (0, 10, 0), -1)
+    #         cv.imshow("Robot", img)
+    #         cv.waitKey(1)
+    #     else:
+    #         cv.circle(img, (round(width/2),round(height/2)), 3, (0, 10, 0), -1)
+    #         cv.imshow("Robot", img)
+    #         cv.waitKey(1)
 
+    # cv.destroyAllWindows()
+    # ep_camera.stop_video_stream()
+    # ep_robot.close()

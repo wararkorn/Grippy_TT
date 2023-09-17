@@ -6,6 +6,15 @@ import time
 from chick_bbox import bounding_box
 import keyboard
 import threading
+import csv
+
+def sub_data_handler(sub_info):
+    global distance
+    distance = sub_info
+
+def diagonal():
+    global x,w
+    return np.sqrt(((x+w)-x)**2 + ((y+h)-y)**2)
 
 #Function คำนวณระยะห่างระหว่าง พิกัดจุดกึ่งกลางของภาพ กับ พิกัดจุดกึ่งกลางของ Bounding Box
 def compute_distance():
@@ -116,7 +125,7 @@ def yaxis_control():
 
 #Function เข้าหาเป้าหมาย โดยที่ยังควบคุมพิกัดจุดกึ่งกลางของภาพ กับ พิกัดจุดกึ่งกลางของ Bounding Box ให้ error อยู่ในช่วงที่ต้องการ
 def Get_Closer():
-    global yaxis_error,end
+    global yaxis_error,end,angle_1
     speed = 30
     stop = 0
 
@@ -125,6 +134,23 @@ def Get_Closer():
         time.sleep(0.01)
         ep_chassis.drive_wheels(w1=stop, w2=stop, w3=stop, w4=stop)
         time.sleep(0.001)
+        
+        if angle_1 >= 0 :
+            delta = abs(37 - angle_1)
+        else :
+            delta = (37 - abs(37 + angle_1)) +37
+
+        x = (np.cos(delta)*19)+13 
+        y = (12  - (np.sin(delta)*19)) + front 
+        c = np.sqrt(x**2 + y**2 )
+
+        data = [x,y,c,w,h,diagonal()]
+
+        with open('relationship.csv', 'a', encoding='UTF8') as f:
+            writer = csv.writer(f)
+            writer.writerow(data)
+
+        
     
 
     elif yaxis_control() == str("she's such an angel") :
@@ -141,7 +167,7 @@ def Get_Closer():
 
 #Function การทำงานทั้งหมดในส่วนของหุ่น 
 def Robot_Processing():
-    global x,y,w,h,cx_bbox,cy_bbox,width,height,p_errorx,iter,angle_1,angle_2,yaxis_error,xaxis_error,end 
+    global x,y,w,h,cx_bbox,cy_bbox,width,height,p_errorx,iter,angle_1,angle_2,yaxis_error,xaxis_error,end ,front
     iter = 1
     angle_1 = 0
     angle_2 = 0
@@ -254,6 +280,8 @@ if __name__ == "__main__":
     ep_camera = ep_robot.camera
     ep_vision = ep_robot.vision
     ep_chassis = ep_robot.chassis
+    ep_sensor = ep_robot.sensor
+    ep_sensor.sub_distance(freq=5, callback=sub_data_handler)
     ep_camera.start_video_stream(display = False)
 
     robot_process = threading.Thread(target= Robot_Processing)
@@ -261,7 +289,14 @@ if __name__ == "__main__":
     boundingbox_process = threading.Thread(target= show_bounding_box)
     boundingbox_process.start()
 
-    # while True :
+
+    
+    time.sleep(1)
+    times = time.time()
+    while time.time() - times < 180: 
+        front = distance[0]
+        print(front)
+        
 
     #     if keyboard.is_pressed('q'):
     #         break

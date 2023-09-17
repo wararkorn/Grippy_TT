@@ -6,6 +6,7 @@ import time
 from chick_bbox import bounding_box
 import keyboard
 import threading
+import csv
 
 #Function คำนวณระยะห่างระหว่าง พิกัดจุดกึ่งกลางของภาพ กับ พิกัดจุดกึ่งกลางของ Bounding Box
 def compute_distance():
@@ -105,7 +106,7 @@ def yaxis_control():
 
 
     else :
-        print('return Done')
+        # print('return Done')
         return str("Done")
     
 
@@ -146,7 +147,7 @@ def Robot_Processing():
     angle_1 = 0
     angle_2 = 0
     end = False
-
+    start = time.time()
 
     ep_servo.moveto(index=2, angle=0).wait_for_completed()
     time.sleep(0.001)
@@ -156,6 +157,7 @@ def Robot_Processing():
     p_time = time.time()
     time.sleep(1)
 
+    start = time.time()
 
     while True:
         time.sleep(0.001)
@@ -186,18 +188,24 @@ def Robot_Processing():
 
                 if xaxis_control(speed_pd , xaxis_error) == str("Done"):
                     print('xaxis_control(speed_x , e_x) == str("Done")')
-
-                    if end and yaxis_control() == str("she's such an angel"):
-                        print('พอเถอะพอ')
-                        while yaxis_control() != str('Done'):
-                            yaxis_control()
-                        else:
-                            print("Gorgeous")
-                            break
-
+                    if yaxis_control() == str("Done"):
+                        end = time.time()
+                        print(f'ใช้เวลา : {end - start}')
+                        time.sleep(5)
+                        start = time.time()
                     else:
-                        print('ยังขยับได้อยู่')
-                        Get_Closer()
+                        yaxis_control()
+                    # if end and yaxis_control() == str("she's such an angel"):
+                    #     print('พอเถอะพอ')
+                    #     while yaxis_control() != str('Done'):
+                    #         yaxis_control()
+                    #     else:
+                    #         print("Gorgeous")
+                    #         break
+
+                    # else:
+                    #     print('ยังขยับได้อยู่')
+                    #     Get_Closer()
                 
                 else:
                     print('xaxis_control(speed_x , e_x) != str("Done")')
@@ -224,6 +232,7 @@ def show_bounding_box():
             break
 
         img = ep_camera.read_cv2_image(strategy = "newest")
+        # img = ep_camera.read_video_frame()
         x,y,w,h,cx_bbox,cy_bbox,width,height = bounding_box(img)
 
 
