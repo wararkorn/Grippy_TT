@@ -6,15 +6,14 @@ import time
 from chick_bbox import bounding_box
 import keyboard
 import threading
+from delta import theta,cos_degree,sin_degree,tan_degree
 import csv
 
-def sub_data_handler(sub_info):
-    global distance
-    distance = sub_info
+def sub_position_handler(position_info):
+    global x_position
+    x_position, y, z = position_info
 
-def diagonal():
-    global x,w
-    return np.sqrt(((x+w)-x)**2 + ((y+h)-y)**2)
+
 
 #Function คำนวณระยะห่างระหว่าง พิกัดจุดกึ่งกลางของภาพ กับ พิกัดจุดกึ่งกลางของ Bounding Box
 def compute_distance():
@@ -61,7 +60,7 @@ def xaxis_control(speed_pid,xaxis_error):
 #Function การควบคุมหุ่นในแกน Y หรือ การควบคุมให้พิกัดจุดกึ่งกลางของภาพ กับ พิกัดจุดกึ่งกลางของ Bounding Box ให้ error ในแนวแกน Y อยู่ในช่วงที่ต้องการ
 #กำหนดให้ error (y) อยู่ในช่วง +- 5 pixel 
 def yaxis_control():
-    global angle_1,angle_2,yaxis_error
+    global angle_1,angle_2,yaxis_error,angle_1_max,angle_1_min,angle_2_max,angle_2_min
 
     
     if yaxis_error > 10:
@@ -125,7 +124,7 @@ def yaxis_control():
 
 #Function เข้าหาเป้าหมาย โดยที่ยังควบคุมพิกัดจุดกึ่งกลางของภาพ กับ พิกัดจุดกึ่งกลางของ Bounding Box ให้ error อยู่ในช่วงที่ต้องการ
 def Get_Closer():
-    global yaxis_error,end,angle_1
+    global yaxis_error,end,angle_1_max,angle_2_max,angle_2_min,angle_1_min,x_po
     speed = 30
     stop = 0
 
@@ -134,23 +133,39 @@ def Get_Closer():
         time.sleep(0.01)
         ep_chassis.drive_wheels(w1=stop, w2=stop, w3=stop, w4=stop)
         time.sleep(0.001)
+        h = 11.5
+
+        if angle_1 >= 0:
+            if angle_2 >= 0:
+
+                theta1, theta2 = theta(angle_1_min,angle_2_min)
+                height = (cos_degree(theta1) * h) + 20.75
+
+            else:
+
+                theta1, theta2 = theta(angle_1_min,angle_2_max)
+                height = (cos_degree(theta1) * h) + 20.75
+        else:
+            if angle_2 >= 0:
+
+                theta1, theta2 = theta(angle_1_max,angle_2_min)
+                height = (cos_degree(theta1) * h) + 20.75
+
+            else:
+
+                theta1, theta2 = theta(angle_1_max,angle_2_max)
+                height = (cos_degree(theta1) * h) + 20.75
         
-        if angle_1 >= 0 :
-            delta = abs(37 - angle_1)
-        else :
-            delta = (37 - abs(37 + angle_1)) +37
 
-        x = (np.cos(delta)*19)+13 
-        y = (12  - (np.sin(delta)*19)) + front 
-        c = np.sqrt(x**2 + y**2 )
+        chick_camera = ((1/(cos_degree(theta2)))*height) - ((1/(cos_degree(theta2)))*4.25)
+        # x = tan_degree(theta2)*height
 
-        data = [x,y,c,w,h,diagonal()]
+        data = [x_po,chick_camera,w,h,np.sqrt(((w)**2)+((h)**2))]      
+        with open('relationship.csv' ,'a', encoding='UTF8') as f:
+                                writer = csv.writer(f)
+                                writer.writerow(data)
 
-        with open('relationship.csv', 'a', encoding='UTF8') as f:
-            writer = csv.writer(f)
-            writer.writerow(data)
 
-        
     
 
     elif yaxis_control() == str("she's such an angel") :
@@ -167,17 +182,25 @@ def Get_Closer():
 
 #Function การทำงานทั้งหมดในส่วนของหุ่น 
 def Robot_Processing():
-    global x,y,w,h,cx_bbox,cy_bbox,width,height,p_errorx,iter,angle_1,angle_2,yaxis_error,xaxis_error,end ,front
+    global x,y,w,h,cx_bbox,cy_bbox,width,height,p_errorx,iter,angle_1,angle_2,yaxis_error,xaxis_error,end ,angle_1_max,angle_2_max,angle_1_min,angle_2_min,x_position,x_po
     iter = 1
-    angle_1 = 0
-    angle_2 = 0
+    angle_1 = 37
+    angle_2 = -12
+    angle_1_max = 0
+    angle_2_max = 0
+    angle_1_min = 0
+    angle_2_min = 0
+    
     end = False
 
 
-    ep_servo.moveto(index=2, angle=0).wait_for_completed()
+    ep_servo.moveto(index=2, angle= -12).wait_for_completed()
     time.sleep(0.001)
-    ep_servo.moveto(index=1, angle=0).wait_for_completed()
+    ep_servo.moveto(index=1, angle= 37).wait_for_completed()
     time.sleep(0.001)
+    angle = ep_servo.get_angle(index = 1)
+
+    print(f'มุมแรกกกกกกก : {angle}')
 
     p_time = time.time()
     time.sleep(1)
@@ -185,7 +208,7 @@ def Robot_Processing():
 
     while True:
         time.sleep(0.001)
-
+        x_po = x_position
         # img = ep_camera.read_cv2_image(strategy="newest")
         # x,y,w,h,cx_bbox,cy_bbox,width,height = bounding_box(img)
 
@@ -215,9 +238,41 @@ def Robot_Processing():
 
                     if end and yaxis_control() == str("she's such an angel"):
                         print('พอเถอะพอ')
+
                         while yaxis_control() != str('Done'):
                             yaxis_control()
+
                         else:
+                            if angle_1 >= 0:
+                                if angle_2 >= 0:
+
+                                    theta1, theta2 = theta(angle_1_min,angle_2_min)
+                                    height = (cos_degree(theta1) * h) + 20.75
+
+                                else:
+
+                                    theta1, theta2 = theta(angle_1_min,angle_2_max)
+                                    height = (cos_degree(theta1) * h) + 20.75
+                            else:
+                                if angle_2 >= 0:
+
+                                    theta1, theta2 = theta(angle_1_max,angle_2_min)
+                                    height = (cos_degree(theta1) * h) + 20.75
+
+                                else:
+
+                                    theta1, theta2 = theta(angle_1_max,angle_2_max)
+                                    height = (cos_degree(theta1) * h) + 20.75
+                            
+
+                            chick_camera = ((1/(cos_degree(theta2)))*height) - ((1/(cos_degree(theta2)))*4.25)
+                            x = tan_degree(theta2)*height
+
+                            data = [x_po,chick_camera,w,h,np.sqrt(((w)**2)+((h)**2))]    
+                            with open('relationship.csv' ,'a', encoding='UTF8') as f:
+                                writer = csv.writer(f)
+                                writer.writerow(data)     
+                            
                             print("Gorgeous")
                             break
 
@@ -280,9 +335,8 @@ if __name__ == "__main__":
     ep_camera = ep_robot.camera
     ep_vision = ep_robot.vision
     ep_chassis = ep_robot.chassis
-    ep_sensor = ep_robot.sensor
-    ep_sensor.sub_distance(freq=5, callback=sub_data_handler)
     ep_camera.start_video_stream(display = False)
+    ep_chassis.sub_position(freq=10,callback=sub_position_handler)
 
     robot_process = threading.Thread(target= Robot_Processing)
     robot_process.start()
@@ -290,33 +344,3 @@ if __name__ == "__main__":
     boundingbox_process.start()
 
 
-    
-    time.sleep(1)
-    times = time.time()
-    while time.time() - times < 180: 
-        front = distance[0]
-        print(front)
-        
-
-    #     if keyboard.is_pressed('q'):
-    #         break
-
-    #     img = ep_camera.read_cv2_image(strategy = "newest")
-    #     x,y,w,h,cx_bbox,cy_bbox,width,height = bounding_box(img)
-
-        # show_bounding_box()
-    #     if w >= 10 and h >= 10 :
-    #         cv.rectangle(img , (x,y) , (x+w,y+h) , (0 , 0 , 0) , 1)
-    #         cv.putText(img, f'{cx_bbox},{cy_bbox}', (cx_bbox,cy_bbox), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-    #         cv.circle(img, (cx_bbox, cy_bbox), 3, (0, 10, 0), -1)
-    #         cv.circle(img, (round(width/2),round(height/2)), 3, (0, 10, 0), -1)
-    #         cv.imshow("Robot", img)
-    #         cv.waitKey(1)
-    #     else:
-    #         cv.circle(img, (round(width/2),round(height/2)), 3, (0, 10, 0), -1)
-    #         cv.imshow("Robot", img)
-    #         cv.waitKey(1)
-
-    # cv.destroyAllWindows()
-    # ep_camera.stop_video_stream()
-    # ep_robot.close()
