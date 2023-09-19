@@ -124,7 +124,7 @@ def yaxis_control():
 
 #Function เข้าหาเป้าหมาย โดยที่ยังควบคุมพิกัดจุดกึ่งกลางของภาพ กับ พิกัดจุดกึ่งกลางของ Bounding Box ให้ error อยู่ในช่วงที่ต้องการ
 def Get_Closer():
-    global yaxis_error,end,angle_1_max,angle_2_max,angle_2_min,angle_1_min,x_po
+    global yaxis_error,end,angle_1_max,angle_2_max,angle_2_min,angle_1_min,x_po,w,h
     speed = 30
     stop = 0
 
@@ -133,37 +133,38 @@ def Get_Closer():
         time.sleep(0.01)
         ep_chassis.drive_wheels(w1=stop, w2=stop, w3=stop, w4=stop)
         time.sleep(0.001)
-        h = 11.5
+        l = 11.5
 
         if angle_1 >= 0:
             if angle_2 >= 0:
 
                 theta1, theta2 = theta(angle_1_min,angle_2_min)
-                height = (cos_degree(theta1) * h) + 20.75
+                height = (cos_degree(theta1) * l) + 20.75
 
             else:
 
                 theta1, theta2 = theta(angle_1_min,angle_2_max)
-                height = (cos_degree(theta1) * h) + 20.75
+                height = (cos_degree(theta1) * l) + 20.75
         else:
             if angle_2 >= 0:
 
                 theta1, theta2 = theta(angle_1_max,angle_2_min)
-                height = (cos_degree(theta1) * h) + 20.75
+                height = (cos_degree(theta1) * l) + 20.75
 
             else:
 
                 theta1, theta2 = theta(angle_1_max,angle_2_max)
-                height = (cos_degree(theta1) * h) + 20.75
+                height = (cos_degree(theta1) * l) + 20.75
         
 
         chick_camera = ((1/(cos_degree(theta2)))*height) - ((1/(cos_degree(theta2)))*4.25)
         # x = tan_degree(theta2)*height
 
-        data = [x_po,chick_camera,w,h,np.sqrt(((w)**2)+((h)**2))]      
-        with open('relationship.csv' ,'a', encoding='UTF8') as f:
-                                writer = csv.writer(f)
-                                writer.writerow(data)
+        data = [h,x_po]
+                            # data = [x_po,chick_camera,w,h,np.sqrt(((w)**2)+((h)**2))]    
+        with open('height_havepassed.csv' ,'a', encoding='UTF8') as f:
+            writer = csv.writer(f)
+            writer.writerow(data)   
 
 
     
@@ -267,9 +268,9 @@ def Robot_Processing():
 
                             chick_camera = ((1/(cos_degree(theta2)))*height) - ((1/(cos_degree(theta2)))*4.25)
                             x = tan_degree(theta2)*height
-
-                            data = [x_po,chick_camera,w,h,np.sqrt(((w)**2)+((h)**2))]    
-                            with open('relationship.csv' ,'a', encoding='UTF8') as f:
+                            data = [h,x_po]
+                            # data = [x_po,chick_camera,w,h,np.sqrt(((w)**2)+((h)**2))]    
+                            with open('height_havepassed.csv' ,'a', encoding='UTF8') as f:
                                 writer = csv.writer(f)
                                 writer.writerow(data)     
                             
