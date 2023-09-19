@@ -64,48 +64,50 @@ def yaxis_control():
 
     
     if yaxis_error > 10:
-        print('yaxis_error > 5')
+        print('yaxis_error > 10')
         angle_1 += 1
         angle_1_min = min(40,angle_1)
 
         if angle_2 > 20:
-            print('yaxis_error > 5 | angle_2 > 20')
+            print('yaxis_error > 10 | angle_2 > 20')
             angle_2 -= 1
             ep_servo.moveto(index=2, angle=angle_2).wait_for_completed()
             time.sleep(0.001)
         
-        elif angle_1 < 40:
-            print('yaxis_error > 5 | angle_1 < 40')
-            ep_servo.moveto(index=1, angle=angle_1_min).wait_for_completed()
-            time.sleep(0.001)
+        else:
+        
+            if angle_1 < 40:
+                print('yaxis_error > 10 | angle_1 < 40')
+                ep_servo.moveto(index=1, angle=angle_1_min).wait_for_completed()
+                time.sleep(0.001)
 
-        elif angle_1 >= 40:
-            print('yaxis_error > 5 | angle_1 >= 40')
-            angle_2 -= 1
-            angle_2_max = max(-40,angle_2)
-            ep_servo.moveto(index=2, angle=angle_2_max).wait_for_completed()
-            time.sleep(0.001)
+            elif angle_1 >= 40:
+                print('yaxis_error > 10 | angle_1 >= 40')
+                angle_2 -= 1
+                angle_2_max = max(-40,angle_2)
+                ep_servo.moveto(index=2, angle=angle_2_max).wait_for_completed()
+                time.sleep(0.001)
     
 
     elif yaxis_error < -10:
         print(yaxis_error)
-        print('yaxis_error < -5')
+        print('yaxis_error < -10')
         angle_1 -= 1
         angle_1_max = max(-40,angle_1)
 
         if angle_1 == 40:
-            print('yaxis_error < -5 | angle_1 == 40')
+            print('yaxis_error < -10 | angle_1 == 40')
             angle_2 += 1
             ep_servo.moveto(index=2, angle=angle_2).wait_for_completed()
             time.sleep(0.001)
 
         elif angle_1 > -40:
-            print('yaxis_error < -5 | angle_1 > -40')
+            print('yaxis_error < -10 | angle_1 > -40')
             ep_servo.moveto(index=1, angle=angle_1_max).wait_for_completed()
             time.sleep(0.001)   
 
         elif angle_1 <= -40:
-            print('yaxis_error < -5 | angle_1 <= -40')
+            print('yaxis_error < -10 | angle_1 <= -40')
             angle_2 += 1
             angle_2_min = min(40,angle_2)
             ep_servo.moveto(index=2, angle=angle_2_min).wait_for_completed()
@@ -160,9 +162,9 @@ def Get_Closer():
         chick_camera = ((1/(cos_degree(theta2)))*height) - ((1/(cos_degree(theta2)))*4.25)
         # x = tan_degree(theta2)*height
 
-        data = [h,x_po]
-                            # data = [x_po,chick_camera,w,h,np.sqrt(((w)**2)+((h)**2))]    
-        with open('height_havepassed.csv' ,'a', encoding='UTF8') as f:
+        # data = [h,x_po]
+        data = [x_po,chick_camera,w,h,np.sqrt(((w)**2)+((h)**2))]    
+        with open('relationship.csv' ,'a', encoding='UTF8') as f:
             writer = csv.writer(f)
             writer.writerow(data)   
 
@@ -170,8 +172,8 @@ def Get_Closer():
     
 
     elif yaxis_control() == str("she's such an angel") :
-        ep_chassis.drive_wheels(w1=-speed, w2=-speed, w3=-speed, w4=-speed)
-        time.sleep(0.01)
+        # ep_chassis.drive_wheels(w1=-speed, w2=-speed, w3=-speed, w4=-speed)
+        # time.sleep(0.01)
         ep_chassis.drive_wheels(w1=stop, w2=stop, w3=stop, w4=stop)
         time.sleep(0.001)
         print('Already Move on ถอยออกมาก่อนเนาะ')
@@ -268,9 +270,9 @@ def Robot_Processing():
 
                             chick_camera = ((1/(cos_degree(theta2)))*height) - ((1/(cos_degree(theta2)))*4.25)
                             x = tan_degree(theta2)*height
-                            data = [h,x_po]
-                            # data = [x_po,chick_camera,w,h,np.sqrt(((w)**2)+((h)**2))]    
-                            with open('height_havepassed.csv' ,'a', encoding='UTF8') as f:
+                            # data = [h,x_po]
+                            data = [x_po,chick_camera,w,h,np.sqrt(((w)**2)+((h)**2))]    
+                            with open('relationship.csv' ,'a', encoding='UTF8') as f:
                                 writer = csv.writer(f)
                                 writer.writerow(data)     
                             
