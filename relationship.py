@@ -66,53 +66,50 @@ def xaxis_control(speed_pid,xaxis_error):
 #กำหนดให้ error (y) อยู่ในช่วง +- 5 pixel 
 def yaxis_control():
     global angle_1,angle_2,yaxis_error,angle_1_max,angle_1_min,angle_2_max,angle_2_min
-
     
     if yaxis_error > 10:
-        print('yaxis_error > 10')
+        print('yaxis_error > 5')
         angle_1 += 1
         angle_1_min = min(40,angle_1)
 
         if angle_2 > 20:
-            print('yaxis_error > 10 | angle_2 > 20')
+            print('yaxis_error > 5 | angle_2 > 20')
             angle_2 -= 1
             ep_servo.moveto(index=2, angle=angle_2).wait_for_completed()
             time.sleep(0.001)
         
-        else:
-        
-            if angle_1 < 40:
-                print('yaxis_error > 10 | angle_1 < 40')
-                ep_servo.moveto(index=1, angle=angle_1_min).wait_for_completed()
-                time.sleep(0.001)
+        elif angle_1 < 40:
+            print('yaxis_error > 5 | angle_1 < 40')
+            ep_servo.moveto(index=1, angle=angle_1_min).wait_for_completed()
+            time.sleep(0.001)
 
-            elif angle_1 >= 40:
-                print('yaxis_error > 10 | angle_1 >= 40')
-                angle_2 -= 1
-                angle_2_max = max(-40,angle_2)
-                ep_servo.moveto(index=2, angle=angle_2_max).wait_for_completed()
-                time.sleep(0.001)
+        elif angle_1 >= 40:
+            print('yaxis_error > 5 | angle_1 >= 40')
+            angle_2 -= 1
+            angle_2_max = max(-40,angle_2)
+            ep_servo.moveto(index=2, angle=angle_2_max).wait_for_completed()
+            time.sleep(0.001)
     
 
     elif yaxis_error < -10:
         print(yaxis_error)
-        print('yaxis_error < -10')
+        print('yaxis_error < -5')
         angle_1 -= 1
         angle_1_max = max(-40,angle_1)
 
         if angle_1 == 40:
-            print('yaxis_error < -10 | angle_1 == 40')
+            print('yaxis_error < -5 | angle_1 == 40')
             angle_2 += 1
             ep_servo.moveto(index=2, angle=angle_2).wait_for_completed()
             time.sleep(0.001)
 
         elif angle_1 > -40:
-            print('yaxis_error < -10 | angle_1 > -40')
+            print('yaxis_error < -5 | angle_1 > -40')
             ep_servo.moveto(index=1, angle=angle_1_max).wait_for_completed()
             time.sleep(0.001)   
 
         elif angle_1 <= -40:
-            print('yaxis_error < -10 | angle_1 <= -40')
+            print('yaxis_error < -5 | angle_1 <= -40')
             angle_2 += 1
             angle_2_min = min(40,angle_2)
             ep_servo.moveto(index=2, angle=angle_2_min).wait_for_completed()
@@ -131,7 +128,7 @@ def yaxis_control():
 
 #Function เข้าหาเป้าหมาย โดยที่ยังควบคุมพิกัดจุดกึ่งกลางของภาพ กับ พิกัดจุดกึ่งกลางของ Bounding Box ให้ error อยู่ในช่วงที่ต้องการ
 def Get_Closer():
-    global yaxis_error,end,angle_1_max,angle_2_max,angle_2_min,angle_1_min,x_po,w,h,distance,front
+    global yaxis_error,end,angle_1_max,angle_2_max,angle_2_min,angle_1_min,x_po,w,h,distance,front,m_w_k,m_w_k,chick_rh,chick_rw
     speed = 30
     stop = 0
 
@@ -164,7 +161,7 @@ def Get_Closer():
                 height = (cos_degree(theta1) * l) + 20.75
         
 
-        chick_camera = ((1/(cos_degree(theta2)))*height) - ((1/(cos_degree(theta2)))*4.25)
+        # chick_camera = ((1/(cos_degree(theta2)))*height) - ((1/(cos_degree(theta2)))*4.25)
         # x = tan_degree(theta2)*height
 
         #ข้อมูลคสพ.ระหว่าง ระยะที่เคลื่อนที่ width height diagonal ของ bounding box
@@ -172,14 +169,16 @@ def Get_Closer():
         # with open('relationship.csv' ,'a', encoding='UTF8') as f:
         #     writer = csv.writer(f)
         #     writer.writerow(data)  
-         
-        print(f'----------------------{front} cm -------------------------')
+        # chick_rw = front*m_w_k*w
+        # chick_rh = front*m_h_k*h
+        # print(f'----------------------ความกว้างของไก่ : {chick_rw} cm -------------------------')
+        # print(f'----------------------ความสูงของไก่ : {chick_rh} cm -------------------------')
 
         # ข้อมูลคสพ.ระหว่าง ระยะห่างระหว่างไก่ถึงหุ่น และ ขนาดของไก่ในหน่วย pixel
-        data = [front,w,h,np.sqrt(((w)**2)+((h)**2))]
-        with open('robot_to_chick.csv' ,'a', encoding='UTF8') as f:
-            writer = csv.writer(f)
-            writer.writerow(data)   
+        # data = [front,w,h,np.sqrt(((w)**2)+((h)**2))]
+        # with open('robot_to_chick.csv' ,'a', encoding='UTF8') as f:
+        #     writer = csv.writer(f)
+        #     writer.writerow(data)   
 
 
     
@@ -199,6 +198,7 @@ def Get_Closer():
 #Function การทำงานทั้งหมดในส่วนของหุ่น 
 def Robot_Processing():
     global x,y,w,h,cx_bbox,cy_bbox,width,height,p_errorx,iter,angle_1,angle_2,yaxis_error,xaxis_error,end ,angle_1_max,angle_2_max,angle_1_min,angle_2_min,x_position,x_po,distance,front
+    global m_w_k,m_h_k,chick_rh,chick_rw
     iter = 1
     angle_1 = 37
     angle_2 = -12
@@ -206,8 +206,11 @@ def Robot_Processing():
     angle_2_max = 0
     angle_1_min = 0
     angle_2_min = 0
-    
+    m_w_k = 0.0018315
+    m_h_k = 0.00164385
     end = False
+    chick_rw = 0
+    chick_rh = 0
 
 
     ep_servo.moveto(index=2, angle= -12).wait_for_completed()
@@ -226,10 +229,17 @@ def Robot_Processing():
         time.sleep(0.001)
         x_po = x_position
         front = distance[0]//10
+        # chick_rw = front*m_w_k*w
+        # chick_rh = front*m_h_k*h
+        # print(f'----------------------ความกว้างของไก่ : {chick_rw} cm -------------------------')
+        # print(f'----------------------ความสูงของไก่ : {chick_rh} cm -------------------------')
         # img = ep_camera.read_cv2_image(strategy="newest")
         # x,y,w,h,cx_bbox,cy_bbox,width,height = bounding_box(img)
 
         if w >= 10 and h >= 10 :
+            chick_rw = front*m_w_k*w
+            chick_rh = front*m_h_k*h
+            print(chick_rw,chick_rh)
             print(f'distance : {compute_distance()}')
 
             c_time = time.time()
@@ -290,13 +300,13 @@ def Robot_Processing():
                             #     writer = csv.writer(f)
                             #     writer.writerow(data)  
                             
-                            print(f'----------------------{front} cm -------------------------')
+                            # print(f'----------------------{front} cm -------------------------')
 
                             # ข้อมูลคสพ.ระหว่าง ระยะห่างระหว่างไก่ถึงหุ่น และ ขนาดของไก่ในหน่วย pixel
-                            data = [front,w,h,np.sqrt(((w)**2)+((h)**2))]
-                            with open('robot_to_chick.csv' ,'a', encoding='UTF8') as f:
-                                writer = csv.writer(f)
-                                writer.writerow(data)  
+                            # data = [front,w,h,np.sqrt(((w)**2)+((h)**2))]
+                            # with open('robot_to_chick.csv' ,'a', encoding='UTF8') as f:
+                            #     writer = csv.writer(f)
+                            #     writer.writerow(data)  
                             
                             print("Gorgeous")
                             ep_sensor.unsub_distance()
@@ -326,22 +336,30 @@ def Robot_Processing():
 
 
 def show_bounding_box():
-    global yaxis_error,xaxis_error,x,y,w,h,cx_bbox,cy_bbox,width,height
+    global yaxis_error,xaxis_error,x,y,w,h,cx_bbox,cy_bbox,width,height,front,distance,m_h_k,m_w_k,chick_rw,chick_rh
+    chick_rh = 0
+    chick_rw = 0
     while True :
-
+        # front = distance[0]
+        
         if keyboard.is_pressed('q'):
             break
 
         img = ep_camera.read_cv2_image(strategy = "newest")
         x,y,w,h,cx_bbox,cy_bbox,width,height = bounding_box(img)
 
+        
+        
 
         if w >= 10 and h >= 10 :
             yaxis_error = height//2 - cy_bbox
             xaxis_error = cx_bbox - (width//2)
+            
+
 
             cv.rectangle(img , (x,y) , (x+w,y+h) , (0 , 0 , 0) , 1)
             cv.putText(img, f'{cx_bbox},{cy_bbox}', (cx_bbox,cy_bbox), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+            cv.putText(img,f'width :{chick_rw} cm | height : {chick_rh}',(50,50),cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
             cv.circle(img, (cx_bbox, cy_bbox), 3, (0, 10, 0), -1)
             cv.circle(img, (round(width/2),round(height/2)), 3, (0, 10, 0), -1)
             cv.imshow("Robot", img)
