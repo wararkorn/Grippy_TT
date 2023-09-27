@@ -235,7 +235,8 @@ def Robot_Processing():
             if end is True and yaxis_control() == str("she's such an angel"):
                 print('พอเถอะพอล')
 
-                if ctoc() <= 25:
+            #เงื่อนไข เมื่อระยะห่างระหว่างกล้อง - ไก่ น้อยกว่า 25 cm (ระยะที่สามารถคีบไก่ได้) ให้ gripper หนีบไก่ขึ้นมา
+                if ctoc() < 25:
                     ep_gripper.close(power=100)
                     time.sleep(3)
                     # ep_gripper.pause()
@@ -248,7 +249,7 @@ def Robot_Processing():
                     ep_robot.close()
 
                     break
-
+            # เมื่อระยะห่างระหว่างกล้อง - ไก่ มากกว่าหรือเท่ากับ 25 cm ให้เดินหน้าจนกว่าระยะห่างระหว่างกล้อง - ไก่ จะน้อยกว่า 23 cm จากนั้นให้ gripper หนีบไก่ขึ้นมา
                 else:
                     while ctoc() > 23:
                         if yaxis_control() == str("she's such an angel"):
