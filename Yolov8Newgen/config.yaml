@@ -1,0 +1,7 @@
+path: D:\PSU\241-251\Chic Chicccc\Yolov8_D_o_A\data
+train: images\train
+val: images\train
+
+names:
+  0 : Alive
+  1 : Dead

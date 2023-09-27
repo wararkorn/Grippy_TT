@@ -27,7 +27,7 @@ def compute_distance():
 
 
 #Function การควบคุมหุ่นในแกน X หรือ การควบคุมพิกัดจุดกึ่งกลางของภาพ กับ พิกัดจุดกึ่งกลางของ Bounding Box ให้ error ในแนวแกน X อยู่ในช่วงที่ต้องการ
-#กำหนดให้ error (x) อยู่ในช่วง +- 20 pixel 
+#กำหนดให้ error (x) อยู่ในช่วง +- 10 pixel 
 def xaxis_control(speed_pid,xaxis_error):
     print(xaxis_error)
     if 20 > xaxis_error > 10:
@@ -63,28 +63,28 @@ def xaxis_control(speed_pid,xaxis_error):
     # print(speed)
 
 #Function การควบคุมหุ่นในแกน Y หรือ การควบคุมให้พิกัดจุดกึ่งกลางของภาพ กับ พิกัดจุดกึ่งกลางของ Bounding Box ให้ error ในแนวแกน Y อยู่ในช่วงที่ต้องการ
-#กำหนดให้ error (y) อยู่ในช่วง +- 5 pixel 
+#กำหนดให้ error (y) อยู่ในช่วง +- 10 pixel 
 def yaxis_control():
     global angle_1,angle_2,yaxis_error,angle_1_max,angle_1_min,angle_2_max,angle_2_min
     
     if yaxis_error > 10:
-        print('yaxis_error > 5')
+        print('yaxis_error > 10')
         angle_1 += 1
         angle_1_min = min(40,angle_1)
 
         if angle_2 > 20:
-            print('yaxis_error > 5 | angle_2 > 20')
+            print('yaxis_error > 10 | angle_2 > 20')
             angle_2 -= 1
             ep_servo.moveto(index=2, angle=angle_2).wait_for_completed()
             time.sleep(0.001)
         
         elif angle_1 < 40:
-            print('yaxis_error > 5 | angle_1 < 40')
+            print('yaxis_error > 10 | angle_1 < 40')
             ep_servo.moveto(index=1, angle=angle_1_min).wait_for_completed()
             time.sleep(0.001)
 
         elif angle_1 >= 40:
-            print('yaxis_error > 5 | angle_1 >= 40')
+            print('yaxis_error > 10 | angle_1 >= 40')
             angle_2 -= 1
             angle_2_max = max(-40,angle_2)
             ep_servo.moveto(index=2, angle=angle_2_max).wait_for_completed()
@@ -93,23 +93,23 @@ def yaxis_control():
 
     elif yaxis_error < -10:
         print(yaxis_error)
-        print('yaxis_error < -5')
+        print('yaxis_error < -10')
         angle_1 -= 1
         angle_1_max = max(-40,angle_1)
 
         if angle_1 == 40:
-            print('yaxis_error < -5 | angle_1 == 40')
+            print('yaxis_error < -10 | angle_1 == 40')
             angle_2 += 1
             ep_servo.moveto(index=2, angle=angle_2).wait_for_completed()
             time.sleep(0.001)
 
         elif angle_1 > -40:
-            print('yaxis_error < -5 | angle_1 > -40')
+            print('yaxis_error < -10 | angle_1 > -40')
             ep_servo.moveto(index=1, angle=angle_1_max).wait_for_completed()
             time.sleep(0.001)   
 
         elif angle_1 <= -40:
-            print('yaxis_error < -5 | angle_1 <= -40')
+            print('yaxis_error < -10 | angle_1 <= -40')
             angle_2 += 1
             angle_2_min = min(40,angle_2)
             ep_servo.moveto(index=2, angle=angle_2_min).wait_for_completed()
@@ -160,8 +160,10 @@ def Get_Closer():
                 theta1, theta2 = theta(angle_1_max,angle_2_max)
                 height = (cos_degree(theta1) * l) + 20.75
         
+        height = (cos_degree(theta1) * l) + 20.75
+        chick_camera = ((1/(cos_degree(theta2)))*height) - ((1/(cos_degree(theta2)))*4.25)
 
-        # chick_camera = ((1/(cos_degree(theta2)))*height) - ((1/(cos_degree(theta2)))*4.25)
+        
         # x = tan_degree(theta2)*height
 
         #ข้อมูลคสพ.ระหว่าง ระยะที่เคลื่อนที่ width height diagonal ของ bounding box
@@ -171,7 +173,7 @@ def Get_Closer():
         #     writer.writerow(data)  
         # chick_rw = front*m_w_k*w
         # chick_rh = front*m_h_k*h
-        # print(f'----------------------ความกว้างของไก่ : {chick_rw} cm -------------------------')
+        print(f'----------------------กล้องถึงไก่ : {chick_camera} cm -------------------------')
         # print(f'----------------------ความสูงของไก่ : {chick_rh} cm -------------------------')
 
         # ข้อมูลคสพ.ระหว่าง ระยะห่างระหว่างไก่ถึงหุ่น และ ขนาดของไก่ในหน่วย pixel
@@ -300,7 +302,7 @@ def Robot_Processing():
                             #     writer = csv.writer(f)
                             #     writer.writerow(data)  
                             
-                            # print(f'----------------------{front} cm -------------------------')
+                            print(f'----------------------กล้องถึงไก่ : {chick_camera} cm -------------------------')
 
                             # ข้อมูลคสพ.ระหว่าง ระยะห่างระหว่างไก่ถึงหุ่น และ ขนาดของไก่ในหน่วย pixel
                             # data = [front,w,h,np.sqrt(((w)**2)+((h)**2))]

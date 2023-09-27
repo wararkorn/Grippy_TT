@@ -1,0 +1,7 @@
+path: D:\PSU\241-251\Chic Chicccc\YoloV8\data
+train: images\train
+val: images\train
+# test: Test
+
+names:
+  0 : Chick

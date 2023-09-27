@@ -1,0 +1,7 @@
+path : D:\\PSU\\241-251\\Chic_Chicccc\\newgen\\data
+train : images\\train
+val : images\\train
+
+names :
+  0 : alive
+  1 : dead

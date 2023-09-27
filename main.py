@@ -29,6 +29,7 @@ def compute_distance():
 #Function การควบคุมหุ่นในแกน X หรือ การควบคุมพิกัดจุดกึ่งกลางของภาพ กับ พิกัดจุดกึ่งกลางของ Bounding Box ให้ error ในแนวแกน X อยู่ในช่วงที่ต้องการ
 #กำหนดให้ error (x) อยู่ในช่วง +- 20 pixel 
 def xaxis_control(speed_pid,xaxis_error):
+    global start
     print(xaxis_error)
     if 20 > xaxis_error > 10:
         speed_pid = 20
@@ -58,7 +59,11 @@ def xaxis_control(speed_pid,xaxis_error):
 
 
     elif -10 <= xaxis_error <= 10:
+        end = time.time()
+        print(f'{end - start}')
+        start = time.time()
         return str("Done")
+    
 
     # print(speed)
 
@@ -128,7 +133,7 @@ def yaxis_control():
 
 #Function เข้าหาเป้าหมาย โดยที่ยังควบคุมพิกัดจุดกึ่งกลางของภาพ กับ พิกัดจุดกึ่งกลางของ Bounding Box ให้ error อยู่ในช่วงที่ต้องการ
 def Get_Closer():
-    global yaxis_error,end,angle_1_max,angle_2_max,angle_2_min,angle_1_min,x_po,w,h,distance,front,m_w_k,m_w_k,chick_rh,chick_rw
+    global yaxis_error,end,angle_1_max,angle_2_max,angle_2_min,angle_1_min,x_po,w,h,distance,front,m_w_k,m_w_k,chick_rh,chick_rw,start,start_all,time_used
     speed = 30
     stop = 0
 
@@ -138,7 +143,7 @@ def Get_Closer():
         ep_chassis.drive_wheels(w1=stop, w2=stop, w3=stop, w4=stop)
         time.sleep(0.001)
         l = 11.5
-
+        end = time.time()
         if angle_1 >= 0:
 
             if angle_2 >= 0:
@@ -164,6 +169,11 @@ def Get_Closer():
 
         chick_camera = ((1/(cos_degree(theta2)))*height) - ((1/(cos_degree(theta2)))*4.25)
         print(f"distance ( camera to chick) : {chick_camera}")
+        print(f'เวลาที่ใช้ : {end-start}')
+        # if end-start > 5 :
+            # time_used.append(f'{end-start} s')
+        # print(time_used)
+        # start = time.time()
 
 
     elif yaxis_control() == str("she's such an angel") :
@@ -180,7 +190,7 @@ def Get_Closer():
 #Function การทำงานทั้งหมดในส่วนของหุ่น 
 def Robot_Processing():
     global x,y,w,h,cx_bbox,cy_bbox,width,height,p_errorx,iter,angle_1,angle_2,yaxis_error,xaxis_error,end ,angle_1_max,angle_2_max,angle_1_min,angle_2_min,x_position,x_po,distance,front
-    global m_w_k,m_h_k,chick_rh,chick_rw
+    global m_w_k,m_h_k,chick_rh,chick_rw,start,start_all,time_used
     iter = 1
     angle_1 = 37
     angle_2 = -12
@@ -188,11 +198,12 @@ def Robot_Processing():
     angle_2_max = 0
     angle_1_min = 0
     angle_2_min = 0
-    m_w_k = 0.0018315
-    m_h_k = 0.00164385
+    m_w_k = 0.00191585
+    m_h_k = 0.00168401
     end = False
     chick_rw = 0
     chick_rh = 0
+    time_used = []
 
 
     ep_servo.moveto(index=2, angle= -12).wait_for_completed()
@@ -203,17 +214,20 @@ def Robot_Processing():
 
 
     time.sleep(1)
-
+    start_all = time.time()
+    start = time.time()
 
     while True:
         time.sleep(0.001)
         x_po = x_position
         front = distance[0]//10
+        if front < 10 :
+            front = 10
 
         if w >= 10 and h >= 10 :
             chick_rw = front*m_w_k*w
             chick_rh = front*m_h_k*h
-            print(chick_rw,chick_rh)
+            # print(chick_rw,chick_rh)
             print(f'distance : {compute_distance()}')
 
             c_time = time.time()
@@ -241,6 +255,8 @@ def Robot_Processing():
                             yaxis_control()
 
                         else:
+                            # end_all = time.time()
+
                             if angle_1 >= 0:
                                 if angle_2 >= 0:
 
@@ -264,9 +280,9 @@ def Robot_Processing():
                             
 
                             chick_camera = ((1/(cos_degree(theta2)))*height) - ((1/(cos_degree(theta2)))*4.25)
-                            
                             print(f"distance ( camera to chick) : {chick_camera}")
                             print("Gorgeous")
+                            # print(f"เวลาที่ใช้ทั้งหมด : {end_all-start_all}")
                             ep_sensor.unsub_distance()
                             ep_robot.close()
 
@@ -314,7 +330,7 @@ def show_bounding_box():
 
             cv.rectangle(img , (x,y) , (x+w,y+h) , (0 , 0 , 0) , 1)
             cv.putText(img, f'{cx_bbox},{cy_bbox}', (cx_bbox,cy_bbox), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-            cv.putText(img,f'width :{chick_rw} cm | height : {chick_rh}',(50,50),cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+            cv.putText(img,f'width :{chick_rw} cm | height : {chick_rh}',(30,30),cv.FONT_HERSHEY_SIMPLEX, 0.1, (0, 255, 0), 1)
             cv.circle(img, (cx_bbox, cy_bbox), 3, (0, 10, 0), -1)
             cv.circle(img, (round(width/2),round(height/2)), 3, (0, 10, 0), -1)
             cv.imshow("Robot", img)
@@ -323,7 +339,7 @@ def show_bounding_box():
         cv.circle(img, (round(width/2),round(height/2)), 3, (0, 10, 0), -1)
         cv.imshow("Robot", img)
         cv.waitKey(1)
-        
+
 
     cv.destroyAllWindows()
     ep_camera.stop_video_stream()

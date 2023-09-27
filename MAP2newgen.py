@@ -10,6 +10,7 @@ from delta import theta,cos_degree,sin_degree,tan_degree
 import csv
 from ultralytics import YOLO
 
+#Function การคำนวณระยะห่างระหว่างกล้อง - ไก่ ในหน่วยเซนติเมตร
 def ctoc():
     global angle_1,angle_2,angle_1_min,angle_1_max,angle_2_min,angle_2_max,height
     l = 11.5
@@ -58,13 +59,13 @@ def compute_distance():
 def xaxis_control(speed_pid,xaxis_error):
     print(xaxis_error)
     if 20 > xaxis_error > 10:
-        speed_pid = 20
+        speed_pid = 25
         ep_chassis.drive_wheels(w1=-speed_pid, w2=speed_pid, w3=speed_pid, w4=-speed_pid)
         time.sleep(0.001)
         ep_chassis.drive_wheels(w1=0, w2=0, w3=0, w4=0)
 
     elif -20 < xaxis_error < -10:
-        speed_pid = 20
+        speed_pid = 25
         # speed_pid = -speed_pid
         ep_chassis.drive_wheels(w1=speed_pid, w2=-speed_pid, w3=-speed_pid, w4=speed_pid)
         time.sleep(0.001)
@@ -96,21 +97,28 @@ def yaxis_control():
     
     if yaxis_error > 8:
         print('yaxis_error > 10')
-        angle_1 += 1
+        angle_1 += 2
         angle_1_min = min(40,angle_1)
 
         if angle_2 > 20:
             print('yaxis_error > 10 | angle_2 > 20')
             angle_2 -= 1
+            angle_2_max = max(angle_2,-40)
             ep_servo.moveto(index=2, angle=angle_2).wait_for_completed()
             time.sleep(0.001)
         
-        if angle_1 < 40:
+        if angle_1 <= -40:
+            angle_2 -= 1
+            angle_2_max = max(-40,angle_2)
+            ep_servo.moveto(index=2, angle=angle_2_max).wait_for_completed()
+            time.sleep(0.001)
+
+        elif angle_1 < -10:
             print('yaxis_error > 10 | angle_1 < 40')
             ep_servo.moveto(index=1, angle=angle_1_min).wait_for_completed()
             time.sleep(0.001)
 
-        elif angle_1 >= 40:
+        elif angle_1 >= -10:
             print('yaxis_error > 10 | angle_1 >= 40')
             angle_2 -= 1
             angle_2_max = max(-40,angle_2)
@@ -127,7 +135,8 @@ def yaxis_control():
         if angle_1 == 40:
             print('yaxis_error < -10 | angle_1 == 40')
             angle_2 += 1
-            ep_servo.moveto(index=2, angle=angle_2).wait_for_completed()
+            angle_2_min = min(40,angle_2)
+            ep_servo.moveto(index=2, angle=angle_2_min).wait_for_completed()
             time.sleep(0.001)
 
         elif angle_1 > -40:
@@ -156,12 +165,12 @@ def yaxis_control():
 #Function เข้าหาเป้าหมาย โดยที่ยังควบคุมพิกัดจุดกึ่งกลางของภาพ กับ พิกัดจุดกึ่งกลางของ Bounding Box ให้ error อยู่ในช่วงที่ต้องการ
 def Get_Closer():
     global yaxis_error,end,angle_1_max,angle_2_max,angle_2_min,angle_1_min,x_po,w,h,distance,front,m_w_k,m_w_k,chick_rh,chick_rw
-    speed = 30
+    speed = 50
     stop = 0
 
     if yaxis_control() == str("Done"):
         ep_chassis.drive_wheels(w1=speed, w2=speed, w3=speed, w4=speed)
-        time.sleep(0.01)
+        time.sleep(0.1)
         ep_chassis.drive_wheels(w1=stop, w2=stop, w3=stop, w4=stop)
         time.sleep(0.001)
         
@@ -182,9 +191,13 @@ def Get_Closer():
 def Robot_Processing():
     global x,y,w,h,cx_bbox,cy_bbox,width,height,p_errorx,iter,angle_1,angle_2,yaxis_error,xaxis_error,end ,angle_1_max,angle_2_max,angle_1_min,angle_2_min,x_position,x_po,distance,front
     global m_w_k,m_h_k,chick_rh,chick_rw
+    cx_bbox = 640
+    cy_bbox = 360
     iter = 1
-    angle_1 = 37
-    angle_2 = -12
+    # angle_1 = 37
+    # angle_2 = -12
+    angle_1 = -10
+    angle_2 = 0
     angle_1_max = 0
     angle_2_max = 0
     angle_1_min = 0
@@ -192,12 +205,12 @@ def Robot_Processing():
     end = False
 
     l = 11.5
-    ep_gripper.open(power=50)
-    time.sleep(1)
+    ep_gripper.open(power=100)
+    time.sleep(4)
     ep_gripper.pause()
-    ep_servo.moveto(index=2, angle= -12).wait_for_completed()
+    ep_servo.moveto(index=2, angle= 0).wait_for_completed()
     time.sleep(0.001)
-    ep_servo.moveto(index=1, angle= 37).wait_for_completed()
+    ep_servo.moveto(index=1, angle= 0).wait_for_completed()
     time.sleep(0.001)
     angle = ep_servo.get_angle(index = 1)
 
@@ -213,18 +226,15 @@ def Robot_Processing():
 
         print(f'cy_bbox : {cy_bbox} center : {height//2} y error : {yaxis_error}')
 
-        kp = 0.3
+        kp = 0.25
         speed_pd = (kp*xaxis_error)
 
         if xaxis_control(speed_pd , xaxis_error) == str("Done"):
             # print('xaxis_control(speed_x , e_x) == str("Done")')
 
             if end is True and yaxis_control() == str("she's such an angel"):
-                print('พอเถอะพอ')
-            #     print('จบ')
-            #     while yaxis_control() != str('Done'):
-            #         if yaxis_control() == str("she's such an angel"):
-            #             ctoc()
+                print('พอเถอะพอล')
+
                 if ctoc() <= 25:
                     ep_gripper.close(power=100)
                     time.sleep(3)
@@ -238,13 +248,12 @@ def Robot_Processing():
                     ep_robot.close()
 
                     break
-            #             else:
-            #                 pass
+
                 else:
                     while ctoc() > 23:
                         if yaxis_control() == str("she's such an angel"):
-                            ep_chassis.drive_wheels(w1=15, w2=15, w3=15, w4=15)
-                            time.sleep(0.05)
+                            ep_chassis.drive_wheels(w1=13, w2=13, w3=13, w4=13)
+                            time.sleep(0.01)
                             ep_chassis.drive_wheels(w1=0, w2=0, w3=0, w4=0)
                             time.sleep(0.001)
                         else :
@@ -253,7 +262,7 @@ def Robot_Processing():
                         ep_gripper.close(power=100)
                         time.sleep(3)
                         ep_servo.moveto(index=2, angle= -12).wait_for_completed()
-                        time.sleep(0.001)
+                        time.sleep(0.007)
                         ep_servo.moveto(index=1, angle= 37).wait_for_completed()
                         time.sleep(0.001)
                         # ep_gripper.pause()
@@ -264,20 +273,16 @@ def Robot_Processing():
                         break
              
             else:
-                # print('ยังขยับได้อยู่')
-                # yaxis_control()
+
                 Get_Closer()
         
         else:
-            # print('xaxis_control(speed_x , e_x) != str("Done")')
             xaxis_control(speed_pd , xaxis_error)
             
 
-
+#Function สร้าง bounding box (ไก่ตาย) จากการเทรนผ่าน yolov8
 def bounding_box_yolo():
-    global yaxis_error,xaxis_error,x,y,w,h,cx_bbox,cy_bbox,width,height,front,distance,m_h_k,m_w_k,chick_rw,chick_rh
-    # chick_rh = 0
-    # chick_rw = 0
+    global yaxis_error,xaxis_error,x,y,w,h,cx_bbox,cy_bbox,width,height,front,distance,m_h_k,m_w_k,chick_rw,chick_rhs
     model = YOLO("D:\\PSU\\241-251\\Chic_Chicccc\\Yolov8Newgen\\runs\\detect\\train\\weights\\best.pt")
     while True :
         
@@ -293,30 +298,109 @@ def bounding_box_yolo():
         result = results[0]
         box = result.boxes
         c = box.cls
+        b = box.xyxy
+        if len(c) != 0 :
+            if c.sum() >= 2:
+                if ctoc() <= 50:
+                    if abs(round(((int(b[0][0])+int(b[0][2] - b[0][0]))+int(b[0][0]))/2) - 640) < abs(round(((int(b[1][0])+int(b[1][2] - b[1][0]))+int(b[1][0]))/2) - 640):
+                        x = int(b[0][0])
+                        y = int(b[0][1])
+                        h = int(b[0][3] - b[0][1])
+                        w = int(b[0][2] - b[0][0])
+                        
+                        cx_bbox = round(((x+w)+x)/2)
+                        cy_bbox = round(((y+h)+y)/2)
+                        cv.circle(img, (cx_bbox,cy_bbox), 3, (0, 10, 0), -1)
+                        xaxis_error = cx_bbox - (width//2)
+                        if height//2 != 360:
+                            cv.circle(img, (640,360), 3, (0, 10, 0), -1)
+                        else :
+                            yaxis_error = height//2 - cy_bbox
+                            cv.circle(img, (round(width/2),round(height/2)), 3, (0, 10, 0), -1)
+                        cv.rectangle(img , (x,y) , (x+w , y+h) , (204 , 244 , 0) , 1)
 
-        for i in range(len(c)):
-            if c[i] == 1:
-                b = box.xyxy[i]
-                x = int(b[0])
-                y = int(b[1])
-                w = int(b[2] - b[0])
-                h = int(b[3] - b[1])
+                    else:
+                        x = int(b[1][0])
+                        y = int(b[1][1])
+                        h = int(b[1][3] - b[1][1])
+                        w = int(b[1][2] - b[1][0])
+                        
+                        cx_bbox = round(((x+w)+x)/2)
+                        cy_bbox = round(((y+h)+y)/2)
+                        cv.circle(img, (cx_bbox,cy_bbox), 3, (0, 10, 0), -1)
+                        xaxis_error = cx_bbox - (width//2)
+                        if height//2 != 360:
+                            cv.circle(img, (640,360), 3, (0, 10, 0), -1)
+                        else :
+                            yaxis_error = height//2 - cy_bbox
+                            cv.circle(img, (round(width/2),round(height/2)), 3, (0, 10, 0), -1)
+                        cv.rectangle(img , (x,y) , (x+w , y+h) , (204 , 244 , 0) , 1)
+                else:
+                    w1 = int(b[0][2] - b[0][0])
+                    w2 = int(b[1][2] - b[1][0])
+                    if w1 < w2 :
+                        x = int(b[0][0])
+                        y = int(b[0][1])
+                        h = int(b[0][3] - b[0][1])
+                        w = int(b[0][2] - b[0][0])
+                        
+                        cx_bbox = round(((x+w)+x)/2)
+                        cy_bbox = round(((y+h)+y)/2)
+                        cv.circle(img, (cx_bbox,cy_bbox), 3, (0, 10, 0), -1)
+                        xaxis_error = cx_bbox - (width//2)
+                        if height//2 != 360:
+                            cv.circle(img, (640,360), 3, (0, 10, 0), -1)
+                        else :
+                            yaxis_error = height//2 - cy_bbox
+                            cv.circle(img, (round(width/2),round(height/2)), 3, (0, 10, 0), -1)
+                        cv.rectangle(img , (x,y) , (x+w , y+h) , (204 , 244 , 0) , 1)
 
-                cx_bbox = round(((x+w)+x)/2)
-                cy_bbox = round(((y+h)+y)/2)
-                cv.circle(img, (cx_bbox,cy_bbox), 3, (0, 10, 0), -1)
-                xaxis_error = cx_bbox - (width//2)
-                if height//2 != 360:
-                    cv.circle(img, (640,360), 3, (0, 10, 0), -1)
-                else :
-                    yaxis_error = height//2 - cy_bbox
-                    cv.circle(img, (round(width/2),round(height/2)), 3, (0, 10, 0), -1)
-                cv.rectangle(img , (x,y) , (x+w , y+h) , (204 , 244 , 0) , 1)
-        # cv.circle(img, (round(width/2),round(height/2)), 3, (0, 10, 0), -1)
-        cv.imshow("Where R U chickkk", img)
-        cv.waitKey(1)
+                    else:
+                        x = int(b[1][0])
+                        y = int(b[1][1])
+                        h = int(b[1][3] - b[1][1])
+                        w = int(b[1][2] - b[1][0])
+                        
+                        cx_bbox = round(((x+w)+x)/2)
+                        cy_bbox = round(((y+h)+y)/2)
+                        cv.circle(img, (cx_bbox,cy_bbox), 3, (0, 10, 0), -1)
+                        xaxis_error = cx_bbox - (width//2)
+                        if height//2 != 360:
+                            cv.circle(img, (640,360), 3, (0, 10, 0), -1)
+                        else :
+                            yaxis_error = height//2 - cy_bbox
+                            cv.circle(img, (round(width/2),round(height/2)), 3, (0, 10, 0), -1)
+                        cv.rectangle(img , (x,y) , (x+w , y+h) , (204 , 244 , 0) , 1)
+            
+    
+            else:
+                for i in range(len(c)):
+                    if c[i] == 1 :
+                            x = int(b[i][0])
+                            y = int(b[i][1])
+                            w = int(b[i][2] - b[i][0])
+                            h = int(b[i][3] - b[i][1])
 
-  
+                            cx_bbox = round(((x+w)+x)/2)
+                            cy_bbox = round(((y+h)+y)/2)
+                            cv.circle(img, (cx_bbox,cy_bbox), 3, (0, 10, 0), -1)
+                            xaxis_error = cx_bbox - (width//2)
+                            if height//2 != 360:
+                                cv.circle(img, (640,360), 3, (0, 10, 0), -1)
+                            else :
+                                yaxis_error = height//2 - cy_bbox
+                                cv.circle(img, (round(width/2),round(height/2)), 3, (0, 10, 0), -1)
+                            cv.rectangle(img , (x,y) , (x+w , y+h) , (204 , 244 , 0) , 1)
+
+            cv.imshow("Where R U chickkk", img)
+            cv.waitKey(1)
+        
+        else :
+            cx_bbox = 640
+            cy_bbox = 360
+            xaxis_error = 0
+            yaxis_error = 0
+      
 
 if __name__ == "__main__":
     ep_robot = robot.Robot()
